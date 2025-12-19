@@ -20,24 +20,25 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # GPIO Pin Configuration for L298N Motor Driver
+
 # Left wheels (IN1, IN2)
-LEFT_FORWARD = 23
-LEFT_BACKWARD = 24
+LEFT_FORWARD = 16      # IN1 (Pin 36)
+LEFT_BACKWARD = 26     # IN2 (Pin 37)
 
 # Right wheels (IN3, IN4)
-RIGHT_FORWARD = 22
-RIGHT_BACKWARD = 27
+RIGHT_FORWARD = 19     # IN3 (Pin 35)
+RIGHT_BACKWARD = 13    # IN4 (Pin 33)
 
 # PWM Speed Control (ENA, ENB)
-LEFT_ENABLE = 5   # ENA - Left motor speed control
-RIGHT_ENABLE = 6  # ENB - Right motor speed control
+LEFT_ENABLE = 12       # ENA (Pin 32) Left motor speed control
+RIGHT_ENABLE = 18      # ENB (Pin 12) Right motor speed control
 
 # PWM objects (initialized in setup_gpio)
 left_pwm = None
 right_pwm = None
 
 # Current speed (0-100)
-current_speed = 100  # Default to full speed
+current_speed = 50  # Default to half speed
 
 def setup_gpio():
     """Initialize GPIO pins for motor control."""
@@ -60,7 +61,7 @@ def setup_gpio():
     left_pwm = GPIO.PWM(LEFT_ENABLE, 1000)
     right_pwm = GPIO.PWM(RIGHT_ENABLE, 1000)
     
-    # Start PWM with default speed (100%)
+    # Start PWM with default speed
     left_pwm.start(current_speed)
     right_pwm.start(current_speed)
     
