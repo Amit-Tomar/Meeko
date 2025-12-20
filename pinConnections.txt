@@ -1,0 +1,23 @@
+Raspberry Pi 4 – GPIO Header (Physical Layout)
+
+Odd Pins (Left Column)                     | Even Pins (Right Column)
+-------------------------------------------+---------------------------------------
+1  — 3V3  (Orange → TFT VCC)               | 2  — 5V
+3  — GPIO2                                 | 4  — 5V
+5  — GPIO3                                 | 6  — GND
+7  — GPIO4                                 | 8  — GPIO14
+9  — GND                                   | 10 — GPIO15
+11 — GPIO17                                | 12 — GPIO18 (Brown → L298N ENB)
+13 — GPIO27                                | 14 — GND
+15 — GPIO22                                | 16 — GPIO23
+17 — 3V3  (Black → TFT LED)                | 18 — GPIO24 (Blue → TFT RESET)
+19 — GPIO10 (Grey → TFT MOSI)              | 20 — GND (Yellow → TFT GND)
+21 — GPIO9                                 | 22 — GPIO25 (Purple → TFT D/C)
+23 — GPIO11 (White → TFT SCK)              | 24 — GPIO8  (Green → TFT CS)
+25 — GND                                   | 26 — GPIO7
+27 — GPIO0                                 | 28 — GPIO1
+29 — GPIO5                                 | 32 — GPIO12 (Blue → L298N ENA)
+33 — GPIO13 (Red → L298N IN4)              | 34 — GND
+35 — GPIO19 (Orange → L298N IN3)           | 36 — GPIO16 (Green → L298N IN1)
+37 — GPIO26 (Yellow → L298N IN2)           | 38 — GPIO20
+39 — GND (Brown → L298N GND)               | 40 — GPIO21

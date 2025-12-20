@@ -31,29 +31,31 @@
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 20px;
+            padding: 15px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
             border: 1px solid rgba(255, 255, 255, 0.18);
             display: flex;
             flex-direction: column;
             max-height: 95vh;
+            overflow-y: auto;
+            gap: 10px;
         }
 
         h1 {
             text-align: center;
-            margin-bottom: 8px;
-            font-size: clamp(1.5em, 5vw, 2em);
+            margin-bottom: 0;
+            font-size: clamp(1.2em, 4vw, 1.5em);
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
             flex-shrink: 0;
         }
 
         .status {
             text-align: center;
-            margin-bottom: 10px;
-            padding: 8px;
+            margin-bottom: 0;
+            padding: 6px;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 10px;
-            font-size: clamp(0.9em, 3vw, 1.1em);
+            font-size: clamp(0.8em, 2.5vw, 0.9em);
             font-weight: bold;
             flex-shrink: 0;
         }
@@ -69,26 +71,26 @@
         }
 
         .speed-control {
-            margin-bottom: 15px;
+            margin-bottom: 0;
             flex-shrink: 0;
         }
 
         .speed-label {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: clamp(0.9em, 3vw, 1.1em);
+            margin-bottom: 5px;
+            font-size: clamp(0.8em, 2.5vw, 0.9em);
         }
 
         .speed-value {
             font-weight: bold;
-            font-size: clamp(1em, 3.5vw, 1.3em);
+            font-size: clamp(0.9em, 3vw, 1em);
             color: #ffd700;
         }
 
         input[type="range"] {
             width: 100%;
-            height: clamp(30px, 8vw, 40px);
+            height: clamp(25px, 6vw, 30px);
             -webkit-appearance: none;
             appearance: none;
             background: rgba(255, 255, 255, 0.2);
@@ -99,8 +101,8 @@
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 30px;
-            height: 30px;
+            width: 25px;
+            height: 25px;
             background: #ffd700;
             border-radius: 50%;
             cursor: pointer;
@@ -108,8 +110,8 @@
         }
 
         input[type="range"]::-moz-range-thumb {
-            width: 30px;
-            height: 30px;
+            width: 25px;
+            height: 25px;
             background: #ffd700;
             border-radius: 50%;
             cursor: pointer;
@@ -120,33 +122,32 @@
         .controller {
             position: relative;
             width: 100%;
-            flex: 1;
-            min-height: 0;
+            flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 10px 0;
+            margin: 0;
         }
 
         .dpad {
             position: relative;
             width: 100%;
-            max-width: min(400px, 100%);
+            max-width: min(300px, 100%);
             aspect-ratio: 1;
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             grid-template-rows: 1fr 1fr 1fr;
-            gap: clamp(5px, 2vw, 10px);
+            gap: clamp(4px, 1.5vw, 8px);
         }
 
         .btn {
             background: rgba(255, 255, 255, 0.2);
             border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: clamp(10px, 3vw, 15px);
+            border-radius: clamp(8px, 2vw, 12px);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(1.2em, 4vw, 2em);
+            font-size: clamp(1em, 3.5vw, 1.5em);
             cursor: pointer;
             user-select: none;
             transition: all 0.1s;
@@ -181,7 +182,7 @@
             grid-row: 2;
             background: rgba(244, 67, 54, 0.3);
             border-color: rgba(244, 67, 54, 0.5);
-            font-size: clamp(1em, 3vw, 1.5em);
+            font-size: clamp(0.8em, 2.5vw, 1.2em);
         }
 
         .btn-center:active {
@@ -199,13 +200,77 @@
         }
 
         .info {
-            margin-top: 10px;
+            margin-top: 0;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: clamp(0.7em, 2vw, 0.8em);
+            line-height: 1.4;
+            flex-shrink: 0;
+        }
+
+        .display-control {
+            margin-top: 0;
             padding: 10px;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 10px;
-            font-size: clamp(0.75em, 2.5vw, 0.9em);
-            line-height: 1.5;
             flex-shrink: 0;
+        }
+
+        .display-title {
+            font-size: clamp(0.85em, 2.5vw, 1em);
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 8px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: clamp(0.75em, 2vw, 0.85em);
+        }
+
+        .input-group input[type="text"],
+        .input-group input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: clamp(0.85em, 2.5vw, 0.95em);
+            color: #333;
+        }
+
+        .btn-display {
+            width: 100%;
+            padding: 10px;
+            background: rgba(76, 175, 80, 0.3);
+            border: 2px solid rgba(76, 175, 80, 0.5);
+            border-radius: 8px;
+            color: white;
+            font-size: clamp(0.8em, 2.5vw, 0.95em);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 6px;
+        }
+
+        .btn-display:active {
+            background: rgba(76, 175, 80, 0.6);
+            transform: scale(0.98);
+        }
+
+        .btn-clear {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: rgba(244, 67, 54, 0.5);
+        }
+
+        .btn-clear:active {
+            background: rgba(244, 67, 54, 0.6);
         }
 
         .error {
@@ -221,28 +286,28 @@
 
         .arrow {
             filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
-            width: clamp(40px, 10vw, 60px);
-            height: clamp(40px, 10vw, 60px);
+            width: clamp(30px, 8vw, 50px);
+            height: clamp(30px, 8vw, 50px);
         }
 
         @media (max-height: 600px) {
             .container {
-                padding: 10px;
+                padding: 8px;
+                gap: 6px;
             }
             h1 {
-                margin-bottom: 5px;
+                font-size: 1.1em;
             }
             .status {
-                margin-bottom: 5px;
-                padding: 5px;
-            }
-            .speed-control {
-                margin-bottom: 8px;
+                padding: 4px;
+                font-size: 0.75em;
             }
             .info {
-                font-size: 0.7em;
-                padding: 8px;
-                margin-top: 5px;
+                font-size: 0.65em;
+                padding: 6px;
+            }
+            .dpad {
+                max-width: min(250px, 100%);
             }
         }
     </style>
@@ -289,6 +354,26 @@
 
         <div class="error" id="error"></div>
 
+        <div class="display-control">
+            <div class="display-title">📺 Display Control</div>
+            
+            <div class="input-group">
+                <label for="displayText">Text to Display:</label>
+                <input type="text" id="displayText" placeholder="Enter text here..." maxlength="100">
+            </div>
+            
+            <div class="input-group">
+                <label for="fontSize">Font Size:</label>
+                <input type="number" id="fontSize" min="12" max="72" value="35">
+            </div>
+            
+            <button class="btn-display" onclick="displayText()">Display Text on Screen</button>
+            <button class="btn-display" onclick="playEyesVideo()">👁️ Play Eyes Animation</button>
+            <button class="btn-display" onclick="playEyesGif()">👀 Play Eyes GIF</button>
+            <button class="btn-display btn-clear" onclick="stopVideo()">Stop Video</button>
+            <button class="btn-display btn-clear" onclick="clearDisplay()">Clear Screen</button>
+        </div>
+
         <div class="info">
             <strong>Controls:</strong><br>
             ⬆️ Forward | ⬇️ Backward<br>
@@ -304,6 +389,8 @@
         const speedSlider = document.getElementById('speedSlider');
         const speedValue = document.getElementById('speedValue');
         const buttons = document.querySelectorAll('.btn');
+        const displayTextInput = document.getElementById('displayText');
+        const fontSizeInput = document.getElementById('fontSize');
 
         let currentSpeed = 100;
 
@@ -397,6 +484,137 @@
                 errorEl.style.display = 'none';
             }, 3000);
         }
+
+        // Display text function
+        async function displayText() {
+            const text = displayTextInput.value.trim();
+            
+            if (!text) {
+                showError('Please enter some text');
+                return;
+            }
+            
+            const fontSize = parseInt(fontSizeInput.value) || 35;
+            
+            try {
+                const response = await fetch('/display/text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        size: fontSize,
+                        color: [255, 255, 255],
+                        bg_color: [0, 0, 0]
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showStatus('Text displayed', false);
+                    errorEl.style.display = 'none';
+                } else {
+                    showError(data.message || 'Failed to display text');
+                }
+            } catch (error) {
+                showError('Connection error');
+            }
+        }
+
+        // Clear display function
+        async function clearDisplay() {
+            try {
+                const response = await fetch('/display/clear', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showStatus('Display cleared', false);
+                    errorEl.style.display = 'none';
+                } else {
+                    showError(data.message || 'Failed to clear display');
+                }
+            } catch (error) {
+                showError('Connection error');
+            }
+        }
+
+        // Play eyes video function
+        async function playEyesVideo() {
+            try {
+                const response = await fetch('/display/video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        path: '/home/gumpoo/Code/Meeko/videos/Blink.mp4'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showStatus('Playing eyes animation', true);
+                    errorEl.style.display = 'none';
+                } else {
+                    showError(data.message || 'Failed to play video');
+                }
+            } catch (error) {
+                showError('Connection error');
+            }
+        }
+
+        // Play eyes GIF function
+        async function playEyesGif() {
+            try {
+                const response = await fetch('/display/gif', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        path: '/home/gumpoo/Code/Meeko/videos/eyes.gif'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showStatus('Playing eyes GIF', true);
+                    errorEl.style.display = 'none';
+                } else {
+                    showError(data.message || 'Failed to play GIF');
+                }
+            } catch (error) {
+                showError('Connection error');
+            }
+        }
+
+        // Stop video function
+        async function stopVideo() {
+            try {
+                const response = await fetch('/display/video/stop', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showStatus('Video stopped', false);
+                    errorEl.style.display = 'none';
+                } else {
+                    showError(data.message || 'Failed to stop video');
+                }
+            } catch (error) {
+                showError('Connection error');
+            }
+        }
+
+        // Allow Enter key to display text
+        displayTextInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                displayText();
+            }
+        });
 
         // Prevent scrolling on mobile
         document.body.addEventListener('touchmove', (e) => {
