@@ -15,6 +15,9 @@ import digitalio
 from adafruit_rgb_display import st7789
 import cv2
 import threading
+import pyaudio
+import numpy as np
+from openwakeword.model import Model
 
 app = Flask(__name__)
 
@@ -53,6 +56,20 @@ display = st7789.ST7789(
 
 # Video playback control
 video_stop_flag = False
+
+# Wake word detection control
+wakeword_stop_flag = False
+wakeword_thread = None
+wakeword_model = None
+wakeword_detected_callback = None
+last_detection_time = 0
+DETECTION_COOLDOWN = 2.0  # seconds to wait before next detection
+
+# Audio configuration for wake word detection
+AUDIO_FORMAT = pyaudio.paInt16
+AUDIO_CHANNELS = 1
+AUDIO_RATE = 16000
+AUDIO_CHUNK = 1280  # 80ms chunks at 16kHz
 
 # GPIO Pin Configuration for L298N Motor Driver
 
@@ -126,6 +143,7 @@ def cleanup_gpio():
         left_pwm.stop()
     if right_pwm:
         right_pwm.stop()
+    stop_wakeword_detection()
     GPIO.cleanup()
 
 # Register cleanup function
@@ -271,6 +289,121 @@ def play_gif_on_display(gif_path):
         return False
 
 # ============================================================================
+# Wake Word Detection Functions
+# ============================================================================
+
+def initialize_wakeword_model():
+    """Initialize the OpenWakeWord model with alexa model."""
+    global wakeword_model
+    try:
+        logger.info("Initializing wake word model with 'alexa'...")
+        
+        # Use the pre-trained alexa model
+        wakeword_model = Model(wakeword_models=["alexa"])
+        
+        logger.info(f"✓ Wake word model initialized: alexa")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error initializing wake word model: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return False
+
+def wakeword_detection_loop(callback=None):
+    """Main loop for wake word detection."""
+    global wakeword_stop_flag, last_detection_time
+    
+    try:
+        # Initialize PyAudio
+        audio = pyaudio.PyAudio()
+        
+        # Open audio stream
+        stream = audio.open(
+            format=AUDIO_FORMAT,
+            channels=AUDIO_CHANNELS,
+            rate=AUDIO_RATE,
+            input=True,
+            frames_per_buffer=AUDIO_CHUNK
+        )
+        
+        logger.info("Wake word detection started, listening...")
+        
+        while not wakeword_stop_flag:
+            # Read audio chunk
+            audio_data = stream.read(AUDIO_CHUNK, exception_on_overflow=False)
+            audio_array = np.frombuffer(audio_data, dtype=np.int16)
+            
+            # Run prediction
+            prediction = wakeword_model.predict(audio_array)
+            
+            # Check all model predictions
+            for mdl_name, score in prediction.items():
+                if score > 0.5:  # Threshold for detection
+                    current_time = time.time()
+                    
+                    # Check if cooldown period has passed
+                    if current_time - last_detection_time >= DETECTION_COOLDOWN:
+                        logger.info(f"Wake word detected! Model: {mdl_name}, Score: {score:.3f}")
+                        last_detection_time = current_time
+                        
+                        # Call callback if provided
+                        if callback:
+                            callback(mdl_name, score)
+                        
+                        # Display notification on screen
+                        display_text_centered("Alexa!", color=(0, 255, 0), size=50)
+                        time.sleep(1)
+                        clear_display()
+        
+        # Cleanup
+        stream.stop_stream()
+        stream.close()
+        audio.terminate()
+        
+        logger.info("Wake word detection stopped")
+        
+    except Exception as e:
+        logger.error(f"Error in wake word detection: {str(e)}")
+        wakeword_stop_flag = False
+
+def start_wakeword_detection(callback=None):
+    """Start wake word detection in a separate thread."""
+    global wakeword_thread, wakeword_stop_flag, wakeword_detected_callback
+    
+    # Stop any existing detection
+    stop_wakeword_detection()
+    
+    # Initialize model if not already done
+    if wakeword_model is None:
+        if not initialize_wakeword_model():
+            return False
+    
+    # Reset stop flag
+    wakeword_stop_flag = False
+    wakeword_detected_callback = callback
+    
+    # Start detection thread
+    wakeword_thread = threading.Thread(
+        target=wakeword_detection_loop,
+        args=(callback,)
+    )
+    wakeword_thread.daemon = True
+    wakeword_thread.start()
+    
+    logger.info("Wake word detection thread started")
+    return True
+
+def stop_wakeword_detection():
+    """Stop wake word detection."""
+    global wakeword_stop_flag, wakeword_thread
+    
+    if wakeword_thread and wakeword_thread.is_alive():
+        wakeword_stop_flag = True
+        wakeword_thread.join(timeout=2.0)
+        logger.info("Wake word detection stopped")
+
+# ============================================================================
 # Flask Routes - Car Control
 # ============================================================================
 
@@ -300,7 +433,10 @@ def api_info():
             '/display/video': 'Play video (POST with JSON: {"path": "/path/to/video.mp4"})',
             '/display/gif': 'Play GIF animation (POST with JSON: {"path": "/path/to/animation.gif"})',
             '/display/video/stop': 'Stop video playback',
-            '/display/clear': 'Clear display to black'
+            '/display/clear': 'Clear display to black',
+            '/wakeword/start': 'Start wake word detection',
+            '/wakeword/stop': 'Stop wake word detection',
+            '/wakeword/status': 'Get wake word detection status'
         }
     })
 
@@ -575,6 +711,47 @@ def clear_screen():
         return jsonify({'status': 'success', 'action': 'display cleared'})
     except Exception as e:
         logger.error("Error clearing display: %s", str(e))
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# ============================================================================
+# Flask Routes - Wake Word Detection
+# ============================================================================
+
+@app.route('/wakeword/start', methods=['POST', 'GET'])
+def start_wakeword():
+    """Start wake word detection."""
+    try:
+        if start_wakeword_detection():
+            return jsonify({'status': 'success', 'action': 'wake word detection started'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to start wake word detection'}), 500
+    except Exception as e:
+        logger.error("Error starting wake word detection: %s", str(e))
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/wakeword/stop', methods=['POST', 'GET'])
+def stop_wakeword():
+    """Stop wake word detection."""
+    try:
+        stop_wakeword_detection()
+        return jsonify({'status': 'success', 'action': 'wake word detection stopped'})
+    except Exception as e:
+        logger.error("Error stopping wake word detection: %s", str(e))
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/wakeword/status', methods=['GET'])
+def wakeword_status():
+    """Get wake word detection status."""
+    try:
+        is_active = wakeword_thread is not None and wakeword_thread.is_alive()
+        model_loaded = wakeword_model is not None
+        return jsonify({
+            'status': 'success',
+            'active': is_active,
+            'model_loaded': model_loaded
+        })
+    except Exception as e:
+        logger.error("Error getting wake word status: %s", str(e))
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':

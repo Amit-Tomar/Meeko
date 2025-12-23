@@ -19,10 +19,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             padding: 10px;
             color: white;
             overflow-x: hidden;
+            overflow-y: auto;
         }
 
         .container {
@@ -31,14 +32,16 @@
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 15px;
+            padding: 12px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
             border: 1px solid rgba(255, 255, 255, 0.18);
             display: flex;
             flex-direction: column;
-            max-height: 95vh;
-            overflow-y: auto;
-            gap: 10px;
+            max-height: none;
+            overflow-y: visible;
+            gap: 8px;
+            margin: 10px 0;
+            -webkit-overflow-scrolling: touch;
         }
 
         h1 {
@@ -211,17 +214,50 @@
 
         .display-control {
             margin-top: 0;
-            padding: 10px;
+            padding: 0;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 10px;
             flex-shrink: 0;
+            overflow: hidden;
         }
 
         .display-title {
             font-size: clamp(0.85em, 2.5vw, 1em);
             font-weight: bold;
-            margin-bottom: 8px;
+            padding: 10px;
             text-align: center;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .display-title:hover {
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .display-title::after {
+            content: '▼';
+            font-size: 0.8em;
+            transition: transform 0.3s;
+        }
+
+        .display-title.collapsed::after {
+            transform: rotate(-90deg);
+        }
+
+        .display-content {
+            padding: 10px;
+            max-height: 500px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .display-content.collapsed {
+            max-height: 0;
+            padding: 0 10px;
         }
 
         .input-group {
@@ -247,16 +283,27 @@
 
         .btn-display {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             background: rgba(76, 175, 80, 0.3);
             border: 2px solid rgba(76, 175, 80, 0.5);
             border-radius: 8px;
             color: white;
-            font-size: clamp(0.8em, 2.5vw, 0.95em);
+            font-size: clamp(0.75em, 2.5vw, 0.85em);
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
-            margin-top: 6px;
+            margin-top: 4px;
+        }
+
+        .btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .btn-row .btn-display {
+            margin-top: 0;
         }
 
         .btn-display:active {
@@ -355,23 +402,42 @@
         <div class="error" id="error"></div>
 
         <div class="display-control">
-            <div class="display-title">📺 Display Control</div>
-            
-            <div class="input-group">
-                <label for="displayText">Text to Display:</label>
-                <input type="text" id="displayText" placeholder="Enter text here..." maxlength="100">
+            <div class="display-title" onclick="toggleSection(this)">🎤 Wake Word</div>
+            <div class="display-content collapsed">
+                <div class="input-group">
+                    <label>Status: <span id="wakewordStatus" style="color: #ffd700; font-weight: bold;">Unknown</span></label>
+                </div>
+                <div class="btn-row">
+                    <button class="btn-display" onclick="startWakeword()">🎙️ Start</button>
+                    <button class="btn-display btn-clear" onclick="stopWakeword()">🔇 Stop</button>
+                </div>
+                <button class="btn-display" onclick="checkWakewordStatus()">📊 Check Status</button>
             </div>
-            
-            <div class="input-group">
-                <label for="fontSize">Font Size:</label>
-                <input type="number" id="fontSize" min="12" max="72" value="35">
+        </div>
+
+        <div class="display-control">
+            <div class="display-title" onclick="toggleSection(this)">📺 Display</div>
+            <div class="display-content collapsed">
+                <div class="input-group">
+                    <label for="displayText">Text:</label>
+                    <input type="text" id="displayText" placeholder="Enter text..." maxlength="100">
+                </div>
+                
+                <div class="input-group">
+                    <label for="fontSize">Size:</label>
+                    <input type="number" id="fontSize" min="12" max="72" value="35">
+                </div>
+                
+                <button class="btn-display" onclick="displayText()">✏️ Display Text</button>
+                <div class="btn-row">
+                    <button class="btn-display" onclick="playEyesVideo()">👁️ Eyes Video</button>
+                    <button class="btn-display" onclick="playEyesGif()">👀 Eyes GIF</button>
+                </div>
+                <div class="btn-row">
+                    <button class="btn-display btn-clear" onclick="stopVideo()">⏹️ Stop</button>
+                    <button class="btn-display btn-clear" onclick="clearDisplay()">🗑️ Clear</button>
+                </div>
             </div>
-            
-            <button class="btn-display" onclick="displayText()">Display Text on Screen</button>
-            <button class="btn-display" onclick="playEyesVideo()">👁️ Play Eyes Animation</button>
-            <button class="btn-display" onclick="playEyesGif()">👀 Play Eyes GIF</button>
-            <button class="btn-display btn-clear" onclick="stopVideo()">Stop Video</button>
-            <button class="btn-display btn-clear" onclick="clearDisplay()">Clear Screen</button>
         </div>
 
         <div class="info">
@@ -391,8 +457,16 @@
         const buttons = document.querySelectorAll('.btn');
         const displayTextInput = document.getElementById('displayText');
         const fontSizeInput = document.getElementById('fontSize');
+        const wakewordStatusEl = document.getElementById('wakewordStatus');
 
         let currentSpeed = 100;
+
+        // Toggle collapsible sections
+        function toggleSection(titleElement) {
+            titleElement.classList.toggle('collapsed');
+            const content = titleElement.nextElementSibling;
+            content.classList.toggle('collapsed');
+        }
 
         // Update speed display and send to server
         speedSlider.addEventListener('input', (e) => {
@@ -616,10 +690,71 @@
             }
         });
 
-        // Prevent scrolling on mobile
-        document.body.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-        }, { passive: false });
+        // Wake word control functions
+        async function startWakeword() {
+            try {
+                const response = await fetch('/wakeword/start', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showStatus('Wake word detection started', true);
+                    wakewordStatusEl.textContent = 'Active';
+                    wakewordStatusEl.style.color = '#4CAF50';
+                    errorEl.style.display = 'none';
+                } else {
+                    showError(data.message || 'Failed to start wake word detection');
+                }
+            } catch (error) {
+                showError('Connection error');
+            }
+        }
+
+        async function stopWakeword() {
+            try {
+                const response = await fetch('/wakeword/stop', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showStatus('Wake word detection stopped', false);
+                    wakewordStatusEl.textContent = 'Inactive';
+                    wakewordStatusEl.style.color = '#f44336';
+                    errorEl.style.display = 'none';
+                } else {
+                    showError(data.message || 'Failed to stop wake word detection');
+                }
+            } catch (error) {
+                showError('Connection error');
+            }
+        }
+
+        async function checkWakewordStatus() {
+            try {
+                const response = await fetch('/wakeword/status', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const statusText = data.active ? 'Active' : 'Inactive';
+                    const modelText = data.model_loaded ? 'Model Loaded' : 'Model Not Loaded';
+                    wakewordStatusEl.textContent = statusText;
+                    wakewordStatusEl.style.color = data.active ? '#4CAF50' : '#f44336';
+                    showStatus(`Wake word: ${statusText}, ${modelText}`, false);
+                    errorEl.style.display = 'none';
+                } else {
+                    showError(data.message || 'Failed to check status');
+                }
+            } catch (error) {
+                showError('Connection error');
+            }
+        }
 
         // Initial status check
         fetch('/speed/get')
@@ -635,6 +770,9 @@
             .catch(() => {
                 showError('Unable to connect to car');
             });
+
+        // Check wake word status on page load
+        checkWakewordStatus();
     </script>
 </body>
 </html>
