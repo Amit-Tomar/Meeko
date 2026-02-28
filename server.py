@@ -72,26 +72,33 @@ AUDIO_RATE = 16000
 AUDIO_CHUNK = 1280  # 80ms chunks at 16kHz
 
 # GPIO Pin Configuration for L298N Motor Driver
+#
+# Left motor is physically reversed on the chassis, so IN2 drives it forward
+# and IN1 drives it backward (opposite of what you'd expect).
+#
+# Verified by hardware test:
+#   GPIO26 (IN2, phys pin 37) → left wheels FORWARD
+#   GPIO16 (IN1, phys pin 36) → left wheels BACKWARD
+#   GPIO19 (IN3, phys pin 35) → right wheels FORWARD
+#   GPIO13 (IN4, phys pin 33) → right wheels BACKWARD
 
-# Left wheels (IN1, IN2) - Swapped to correct orientation
-LEFT_FORWARD = 26      # IN2 (Pin 37)
-LEFT_BACKWARD = 16     # IN1 (Pin 36)
+LEFT_FORWARD  = 26     # IN2 (Pin 37) – left wheels forward
+LEFT_BACKWARD = 16     # IN1 (Pin 36) – left wheels backward
 
-# Right wheels (IN3, IN4)
-RIGHT_FORWARD = 19     # IN3 (Pin 35)
-RIGHT_BACKWARD = 13    # IN4 (Pin 33)
+RIGHT_FORWARD  = 19    # IN3 (Pin 35) – right wheels forward
+RIGHT_BACKWARD = 13    # IN4 (Pin 33) – right wheels backward
 
 # PWM Speed Control (ENA, ENB)
-LEFT_ENABLE = 12       # ENA (Pin 32) Left motor speed control
-RIGHT_ENABLE = 18      # ENB (Pin 12) Right motor speed control
-
-# Note: Based on your wiring:
-# - ENA (GPIO12) controls IN1/IN2 (Left motor: GPIO16/GPIO26)
-# - ENB (GPIO18) controls IN3/IN4 (Right motor: GPIO19/GPIO13)
+LEFT_ENABLE  = 12      # ENA (Pin 32) – left motor speed control
+RIGHT_ENABLE = 18      # ENB (Pin 12) – right motor speed control
 
 # PWM objects (initialized in setup_gpio)
 left_pwm = None
 right_pwm = None
+
+# Tracked duty cycles (RPi.GPIO doesn't expose these directly)
+left_pwm_duty = 100
+right_pwm_duty = 100
 
 # Current speed (0-100)
 current_speed = 50  # Default to half speed
@@ -128,6 +135,9 @@ def setup_gpio():
     # Start PWM at 100% duty cycle (full power, like jumpers were on)
     left_pwm.start(100)
     right_pwm.start(100)
+    global left_pwm_duty, right_pwm_duty
+    left_pwm_duty = 100
+    right_pwm_duty = 100
 
 def stop_all_motors():
     """Stop all motors by setting all pins to LOW."""
@@ -436,7 +446,11 @@ def api_info():
             '/display/clear': 'Clear display to black',
             '/wakeword/start': 'Start wake word detection',
             '/wakeword/stop': 'Stop wake word detection',
-            '/wakeword/status': 'Get wake word detection status'
+            '/wakeword/status': 'Get wake word detection status',
+            '/debug/pins': 'Show live state of all GPIO pins with wiring details',
+            '/debug/motor/left': 'Drive left motor only (GET/POST, optional ?direction=forward|backward, default forward)',
+            '/debug/motor/right': 'Drive right motor only (GET/POST, optional ?direction=forward|backward, default forward)',
+            '/debug/motor/raw': 'Bypass PWM, drive one side with plain GPIO.output and read pins back (GET, ?side=left|right|both, ?direction=forward|backward)'
         }
     })
 
@@ -447,9 +461,8 @@ def move_forward():
         logger.info("Command: FORWARD - Speed: %d%%", current_speed)
         stop_all_motors()
         time.sleep(0.01)  # Brief delay to ensure motors are stopped
-        # Left wheels backward, right wheels forward
-        GPIO.output(LEFT_BACKWARD, GPIO.HIGH)
-        GPIO.output(RIGHT_FORWARD, GPIO.HIGH)
+        GPIO.output(LEFT_FORWARD,  GPIO.HIGH)   # GPIO26 IN2 phys37
+        GPIO.output(RIGHT_FORWARD, GPIO.HIGH)   # GPIO19 IN3 phys35
         return jsonify({'status': 'success', 'action': 'moving forward'})
     except Exception as e:
         logger.error("Error moving forward: %s", str(e))
@@ -462,9 +475,8 @@ def move_backward():
         logger.info("Command: BACKWARD - Speed: %d%%", current_speed)
         stop_all_motors()
         time.sleep(0.01)  # Brief delay to ensure motors are stopped
-        # Left wheels forward, right wheels backward
-        GPIO.output(LEFT_FORWARD, GPIO.HIGH)
-        GPIO.output(RIGHT_BACKWARD, GPIO.HIGH)
+        GPIO.output(LEFT_BACKWARD,  GPIO.HIGH)  # GPIO16 IN1 phys36
+        GPIO.output(RIGHT_BACKWARD, GPIO.HIGH)  # GPIO13 IN4 phys33
         return jsonify({'status': 'success', 'action': 'moving backward'})
     except Exception as e:
         logger.error("Error moving backward: %s", str(e))
@@ -472,13 +484,13 @@ def move_backward():
 
 @app.route('/rotate/clockwise', methods=['POST', 'GET'])
 def rotate_clockwise():
-    """Rotate the car clockwise at its center."""
+    """Rotate the car clockwise at its center (left forward, right backward)."""
     try:
         logger.info("Command: ROTATE CLOCKWISE - Speed: %d%%", current_speed)
         stop_all_motors()
         time.sleep(0.01)  # Brief delay to ensure motors are stopped
-        GPIO.output(LEFT_FORWARD, GPIO.HIGH)
-        GPIO.output(RIGHT_FORWARD, GPIO.HIGH)
+        GPIO.output(LEFT_FORWARD,   GPIO.HIGH)  # GPIO26 IN2 phys37
+        GPIO.output(RIGHT_BACKWARD, GPIO.HIGH)  # GPIO13 IN4 phys33
         return jsonify({'status': 'success', 'action': 'rotating clockwise'})
     except Exception as e:
         logger.error("Error rotating clockwise: %s", str(e))
@@ -486,13 +498,13 @@ def rotate_clockwise():
 
 @app.route('/rotate/anticlockwise', methods=['POST', 'GET'])
 def rotate_anticlockwise():
-    """Rotate the car anticlockwise at its center."""
+    """Rotate the car anticlockwise at its center (left backward, right forward)."""
     try:
         logger.info("Command: ROTATE ANTICLOCKWISE - Speed: %d%%", current_speed)
         stop_all_motors()
         time.sleep(0.01)  # Brief delay to ensure motors are stopped
-        GPIO.output(LEFT_BACKWARD, GPIO.HIGH)
-        GPIO.output(RIGHT_BACKWARD, GPIO.HIGH)
+        GPIO.output(LEFT_BACKWARD,  GPIO.HIGH)  # GPIO16 IN1 phys36
+        GPIO.output(RIGHT_FORWARD,  GPIO.HIGH)  # GPIO19 IN3 phys35
         return jsonify({'status': 'success', 'action': 'rotating anticlockwise'})
     except Exception as e:
         logger.error("Error rotating anticlockwise: %s", str(e))
@@ -522,10 +534,13 @@ def set_speed():
         if speed < 0 or speed > 100:
             return jsonify({'status': 'error', 'message': 'Speed must be between 0 and 100'}), 400
         
+        global left_pwm_duty, right_pwm_duty
         logger.info("Speed changed: %d%% -> %d%%", current_speed, speed)
         current_speed = speed
         left_pwm.ChangeDutyCycle(speed)
         right_pwm.ChangeDutyCycle(speed)
+        left_pwm_duty = speed
+        right_pwm_duty = speed
         
         return jsonify({'status': 'success', 'speed': speed})
     except ValueError:
@@ -551,8 +566,10 @@ def set_left_speed():
         if speed < 0 or speed > 100:
             return jsonify({'status': 'error', 'message': 'Speed must be between 0 and 100'}), 400
         
+        global left_pwm_duty
         logger.info("Left motor speed set: %d%%", speed)
         left_pwm.ChangeDutyCycle(speed)
+        left_pwm_duty = speed
         
         return jsonify({'status': 'success', 'motor': 'left', 'speed': speed})
     except ValueError:
@@ -573,8 +590,10 @@ def set_right_speed():
         if speed < 0 or speed > 100:
             return jsonify({'status': 'error', 'message': 'Speed must be between 0 and 100'}), 400
         
+        global right_pwm_duty
         logger.info("Right motor speed set: %d%%", speed)
         right_pwm.ChangeDutyCycle(speed)
+        right_pwm_duty = speed
         
         return jsonify({'status': 'success', 'motor': 'right', 'speed': speed})
     except ValueError:
@@ -753,6 +772,374 @@ def wakeword_status():
     except Exception as e:
         logger.error("Error getting wake word status: %s", str(e))
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/debug/pins', methods=['GET'])
+def debug_pins():
+    """Return the live state of every motor/display GPIO pin with wiring details.
+
+    Useful for troubleshooting after a pin-extender installation – check that
+    the expected side of the L298N is actually being driven HIGH.
+    """
+    try:
+        # ------------------------------------------------------------------ #
+        # Pin catalogue: (bcm_gpio, physical_pin, role, connected_to)         #
+        # Based on pinConnections.txt                                          #
+        # ------------------------------------------------------------------ #
+        pin_catalogue = [
+            # Motor direction pins
+            (LEFT_FORWARD,   37, 'LEFT_FORWARD  (IN2)',  'L298N IN2  – left wheels forward'),
+            (LEFT_BACKWARD,  36, 'LEFT_BACKWARD (IN1)',  'L298N IN1  – left wheels backward'),
+            (RIGHT_FORWARD,  35, 'RIGHT_FORWARD (IN3)',  'L298N IN3  – right wheels forward'),
+            (RIGHT_BACKWARD, 33, 'RIGHT_BACKWARD(IN4)',  'L298N IN4  – right wheels backward'),
+            # Enable / PWM pins
+            (LEFT_ENABLE,    32, 'LEFT_ENABLE   (ENA)',  'L298N ENA  – left motor PWM speed (Blue wire, Pin 32)'),
+            (RIGHT_ENABLE,   12, 'RIGHT_ENABLE  (ENB)',  'L298N ENB  – right motor PWM speed (Brown wire, Pin 12)'),
+            # TFT display pins (GPIO10/11 are SPI hardware-managed – not readable via GPIO.input)
+            (8,              24, 'TFT_CS',               'ST7789 CS  (Green wire → CE0, Pin 24)'),
+            (25,             22, 'TFT_DC',               'ST7789 D/C (Purple wire, Pin 22)'),
+            (24,             18, 'TFT_RESET',            'ST7789 RST (Blue wire, Pin 18)'),
+            (10,             19, 'TFT_MOSI',             'ST7789 MOSI (Grey wire, Pin 19) – SPI hardware'),
+            (11,             23, 'TFT_SCK',              'ST7789 SCK  (White wire, Pin 23) – SPI hardware'),
+        ]
+
+        # Pins controlled by the SPI hardware peripheral – cannot be read via GPIO.input
+        SPI_HW_PINS = {10, 11}
+
+        pin_states = []
+        warnings = []
+
+        for bcm, phys, role, wiring in pin_catalogue:
+            if bcm in SPI_HW_PINS:
+                state_label = 'SPI_HARDWARE_MANAGED'
+                state = None
+            else:
+                try:
+                    state = GPIO.input(bcm)
+                    state_label = 'HIGH' if state == GPIO.HIGH else 'LOW'
+                except Exception as read_err:
+                    state_label = f'READ_ERROR ({read_err})'
+                    state = None
+
+            entry = {
+                'bcm_gpio':      bcm,
+                'physical_pin':  phys,
+                'role':          role,
+                'connected_to':  wiring,
+                'state':         state_label,
+            }
+
+            # Attach PWM duty cycle for enable pins (tracked manually)
+            if bcm == LEFT_ENABLE:
+                entry['pwm_duty_cycle'] = left_pwm_duty if left_pwm is not None else 'pwm_not_started'
+            elif bcm == RIGHT_ENABLE:
+                entry['pwm_duty_cycle'] = right_pwm_duty if right_pwm is not None else 'pwm_not_started'
+
+            pin_states.append(entry)
+
+        # ------------------------------------------------------------------ #
+        # Sanity checks – highlight likely wiring problems                    #
+        # ------------------------------------------------------------------ #
+        enable_states = {p['role']: p['state'] for p in pin_states if 'ENABLE' in p['role']}
+        for role, state in enable_states.items():
+            if state != 'HIGH':
+                warnings.append(
+                    f'{role} is {state} – motor on this side will not move. '
+                    'Check ENA/ENB jumper or pin-extender wiring.'
+                )
+
+        # Check that at most one direction pin per side is HIGH at a time
+        left_pins  = [p for p in pin_states if 'LEFT_FORWARD' in p['role'] or 'LEFT_BACKWARD' in p['role']]
+        right_pins = [p for p in pin_states if 'RIGHT_FORWARD' in p['role'] or 'RIGHT_BACKWARD' in p['role']]
+        for side_label, side_pins in [('LEFT', left_pins), ('RIGHT', right_pins)]:
+            high_count = sum(1 for p in side_pins if p['state'] == 'HIGH')
+            if high_count > 1:
+                warnings.append(
+                    f'{side_label} motor has both IN pins HIGH simultaneously – '
+                    'this will cause a shoot-through condition on the L298N.'
+                )
+
+        logger.info("Debug /debug/pins requested – %d pins reported, %d warnings",
+                    len(pin_states), len(warnings))
+
+        return jsonify({
+            'status':   'success',
+            'gpio_mode': 'BCM',
+            'current_speed_pct': current_speed,
+            'pin_config': {
+                'LEFT_FORWARD_BCM':   LEFT_FORWARD,
+                'LEFT_BACKWARD_BCM':  LEFT_BACKWARD,
+                'RIGHT_FORWARD_BCM':  RIGHT_FORWARD,
+                'RIGHT_BACKWARD_BCM': RIGHT_BACKWARD,
+                'LEFT_ENABLE_BCM':    LEFT_ENABLE,
+                'RIGHT_ENABLE_BCM':   RIGHT_ENABLE,
+            },
+            'pins':     pin_states,
+            'warnings': warnings,
+        })
+
+    except Exception as e:
+        logger.error("Error in /debug/pins: %s", str(e))
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/debug/motor/left', methods=['GET', 'POST'])
+def debug_motor_left():
+    """Drive ONLY the left motor for 1 second then stop.
+
+    Use this to confirm the left side responds independently of the right.
+    Optional query param: ?direction=forward (default) or ?direction=backward
+    """
+    try:
+        direction = request.args.get('direction', 'forward').lower()
+        stop_all_motors()
+        time.sleep(0.05)
+
+        if direction == 'backward':
+            GPIO.output(LEFT_BACKWARD, GPIO.HIGH)
+            pin_driven_name = f'LEFT_BACKWARD (GPIO{LEFT_BACKWARD}, phys36)'
+        else:
+            GPIO.output(LEFT_FORWARD, GPIO.HIGH)
+            pin_driven_name = f'LEFT_FORWARD (GPIO{LEFT_FORWARD}, phys37)'
+
+        logger.info("DEBUG: Left motor only – direction=%s, pin=%s HIGH for 1s", direction, pin_driven_name)
+        time.sleep(1)
+        stop_all_motors()
+
+        return jsonify({
+            'status':       'success',
+            'motor':        'left',
+            'direction':    direction,
+            'pin_driven':   pin_driven_name,
+            'enable_pin':   f'LEFT_ENABLE (GPIO{LEFT_ENABLE}) – ENA on L298N',
+            'note':         'Motor ran for 1 second then stopped. If it did not move, check ENA wire from pin extender to L298N.'
+        })
+    except Exception as e:
+        logger.error("Error in /debug/motor/left: %s", str(e))
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/debug/motor/right', methods=['GET', 'POST'])
+def debug_motor_right():
+    """Drive ONLY the right motor for 1 second then stop.
+
+    Use this to confirm the right side responds independently of the left.
+    Optional query param: ?direction=forward (default) or ?direction=backward
+    """
+    try:
+        direction = request.args.get('direction', 'forward').lower()
+        stop_all_motors()
+        time.sleep(0.05)
+
+        if direction == 'backward':
+            GPIO.output(RIGHT_BACKWARD, GPIO.HIGH)
+            pin_driven_name = f'RIGHT_BACKWARD (GPIO{RIGHT_BACKWARD}, phys33)'
+        else:
+            GPIO.output(RIGHT_FORWARD, GPIO.HIGH)
+            pin_driven_name = f'RIGHT_FORWARD (GPIO{RIGHT_FORWARD}, phys35)'
+
+        logger.info("DEBUG: Right motor only – direction=%s, pin=%s HIGH for 1s", direction, pin_driven_name)
+        time.sleep(1)
+        stop_all_motors()
+
+        return jsonify({
+            'status':       'success',
+            'motor':        'right',
+            'direction':    direction,
+            'pin_driven':   pin_driven_name,
+            'enable_pin':   f'RIGHT_ENABLE (GPIO{RIGHT_ENABLE}) – ENB on L298N',
+            'note':         'Motor ran for 1 second then stopped. If it did not move, check ENB wire from pin extender to L298N.'
+        })
+    except Exception as e:
+        logger.error("Error in /debug/motor/right: %s", str(e))
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/debug/motor/raw', methods=['GET', 'POST'])
+def debug_motor_raw():
+    """Low-level motor test: bypass PWM, use plain GPIO.output on enable pins.
+
+    This rules out PWM as the cause – if motors still don't move here the
+    fault is in the physical wiring between pin extender and L298N.
+
+    Query params:
+      side      = left | right | both  (default: both)
+      direction = forward | backward   (default: forward)
+    """
+    try:
+        side      = request.args.get('side', 'both').lower()
+        direction = request.args.get('direction', 'forward').lower()
+
+        results = {}
+
+        # ------------------------------------------------------------------ #
+        # Step 1 – hard stop: direction pins LOW, PWM stopped, enable LOW     #
+        # ------------------------------------------------------------------ #
+        stop_all_motors()
+        if left_pwm:
+            left_pwm.stop()
+        if right_pwm:
+            right_pwm.stop()
+        GPIO.output(LEFT_ENABLE, GPIO.LOW)
+        GPIO.output(RIGHT_ENABLE, GPIO.LOW)
+        time.sleep(0.1)
+
+        results['step1_stop_readback'] = {
+            'LEFT_ENABLE':   'HIGH' if GPIO.input(LEFT_ENABLE)   == GPIO.HIGH else 'LOW',
+            'RIGHT_ENABLE':  'HIGH' if GPIO.input(RIGHT_ENABLE)  == GPIO.HIGH else 'LOW',
+            'LEFT_FORWARD':  'HIGH' if GPIO.input(LEFT_FORWARD)  == GPIO.HIGH else 'LOW',
+            'RIGHT_FORWARD': 'HIGH' if GPIO.input(RIGHT_FORWARD) == GPIO.HIGH else 'LOW',
+        }
+
+        # ------------------------------------------------------------------ #
+        # Step 2 – raise only the requested enable pins via GPIO.output       #
+        # ------------------------------------------------------------------ #
+        drive_left  = side in ('left',  'both')
+        drive_right = side in ('right', 'both')
+
+        if drive_left:
+            GPIO.output(LEFT_ENABLE, GPIO.HIGH)
+        if drive_right:
+            GPIO.output(RIGHT_ENABLE, GPIO.HIGH)
+        time.sleep(0.05)
+
+        # Resolve direction pins
+        if direction == 'forward':
+            if drive_left:
+                GPIO.output(LEFT_FORWARD, GPIO.HIGH)
+            if drive_right:
+                GPIO.output(RIGHT_FORWARD, GPIO.HIGH)
+            dir_pins = {'left':  f'LEFT_FORWARD  (GPIO{LEFT_FORWARD},  physical pin 37)',
+                        'right': f'RIGHT_FORWARD (GPIO{RIGHT_FORWARD}, physical pin 35)'}
+        else:
+            if drive_left:
+                GPIO.output(LEFT_BACKWARD, GPIO.HIGH)
+            if drive_right:
+                GPIO.output(RIGHT_BACKWARD, GPIO.HIGH)
+            dir_pins = {'left':  f'LEFT_BACKWARD  (GPIO{LEFT_BACKWARD},  physical pin 36)',
+                        'right': f'RIGHT_BACKWARD (GPIO{RIGHT_BACKWARD}, physical pin 33)'}
+
+        # ------------------------------------------------------------------ #
+        # Step 3 – read every motor pin back to confirm writes reached HW     #
+        # ------------------------------------------------------------------ #
+        readback = {
+            f'LEFT_ENABLE   GPIO{LEFT_ENABLE}  phys32': 'HIGH' if GPIO.input(LEFT_ENABLE)   == GPIO.HIGH else 'LOW',
+            f'RIGHT_ENABLE  GPIO{RIGHT_ENABLE} phys12': 'HIGH' if GPIO.input(RIGHT_ENABLE)  == GPIO.HIGH else 'LOW',
+            f'LEFT_FORWARD  GPIO{LEFT_FORWARD}  phys37': 'HIGH' if GPIO.input(LEFT_FORWARD)  == GPIO.HIGH else 'LOW',
+            f'LEFT_BACKWARD GPIO{LEFT_BACKWARD} phys36': 'HIGH' if GPIO.input(LEFT_BACKWARD) == GPIO.HIGH else 'LOW',
+            f'RIGHT_FORWARD GPIO{RIGHT_FORWARD} phys35': 'HIGH' if GPIO.input(RIGHT_FORWARD) == GPIO.HIGH else 'LOW',
+            f'RIGHT_BACKWARD GPIO{RIGHT_BACKWARD} phys33': 'HIGH' if GPIO.input(RIGHT_BACKWARD) == GPIO.HIGH else 'LOW',
+        }
+        results['step2_drive_readback'] = readback
+
+        warnings = []
+        actions  = []
+
+        # ── Check 1: enable pins stayed HIGH after we drove them LOW ──────
+        # This means an external source (L298N ENA/ENB jumpers still fitted)
+        # is holding them HIGH, bypassing GPIO control entirely.
+        left_en_stuck_high  = results['step1_stop_readback']['LEFT_ENABLE']  == 'HIGH'
+        right_en_stuck_high = results['step1_stop_readback']['RIGHT_ENABLE'] == 'HIGH'
+
+        if left_en_stuck_high:
+            warnings.append(
+                'LEFT_ENABLE (GPIO12, physical pin 32) read HIGH immediately after '
+                'GPIO.output(LOW) was called. The ENA jumper on the L298N is almost '
+                'certainly still fitted – it is hardwiring ENA to 5 V and ignoring '
+                'the Pi. This is harmless for basic control but means the Pi has no '
+                'speed control over the left motor.'
+            )
+        if right_en_stuck_high:
+            warnings.append(
+                'RIGHT_ENABLE (GPIO18, physical pin 12) read HIGH immediately after '
+                'GPIO.output(LOW) was called. The ENB jumper on the L298N is almost '
+                'certainly still fitted – same as above for the right motor.'
+            )
+
+        # ── Check 2: direction pin write failures ─────────────────────────
+        left_dir_key  = (f'LEFT_FORWARD  GPIO{LEFT_FORWARD}  phys37'
+                         if direction == 'forward'
+                         else f'LEFT_BACKWARD GPIO{LEFT_BACKWARD} phys36')
+        right_dir_key = (f'RIGHT_FORWARD GPIO{RIGHT_FORWARD} phys35'
+                         if direction == 'forward'
+                         else f'RIGHT_BACKWARD GPIO{RIGHT_BACKWARD} phys33')
+
+        if drive_left and readback.get(left_dir_key) != 'HIGH':
+            warnings.append(
+                f'Left direction pin ({left_dir_key}) reads LOW after GPIO.output(HIGH). '
+                'The Pi GPIO write is not reaching the output pad. '
+                'Pin extender not fully seated or broken trace on that row.'
+            )
+        if drive_right and readback.get(right_dir_key) != 'HIGH':
+            warnings.append(
+                f'Right direction pin ({right_dir_key}) reads LOW after GPIO.output(HIGH). '
+                'Same as above for the right side.'
+            )
+
+        # ── Check 3: all Pi readbacks correct but left motor still silent ─
+        # (The pattern from the live data: left EN HIGH, left direction HIGH,
+        #  right motor works, left motor silent → wire between extender and L298N)
+        left_pi_looks_correct = (
+            readback[f'LEFT_ENABLE   GPIO{LEFT_ENABLE}  phys32'] == 'HIGH' and
+            readback.get(left_dir_key) == 'HIGH'
+        )
+        right_pi_looks_correct = (
+            readback[f'RIGHT_ENABLE  GPIO{RIGHT_ENABLE} phys12'] == 'HIGH' and
+            readback.get(right_dir_key) == 'HIGH'
+        )
+
+        if drive_left and left_pi_looks_correct:
+            actions.append(
+                'LEFT MOTOR – Pi GPIO is outputting correctly (all pins read back HIGH). '
+                'The fault is DOWNSTREAM of the Pi, between the pin extender output '
+                'and the L298N screw terminals. Check these wires physically:\n'
+                '  1. Physical pin 37 → L298N IN2  (GPIO26, Yellow wire) – left forward\n'
+                '  2. Physical pin 36 → L298N IN1  (GPIO16, Green wire)  – left backward\n'
+                '  3. Physical pin 32 → L298N ENA  (GPIO12, Blue wire)   – only if ENA jumper removed\n'
+                'With a pin extender, pins 36/37 are the most common to pop loose. '
+                'Press each wire firmly into its terminal and re-test.'
+            )
+        if drive_right and right_pi_looks_correct:
+            actions.append(
+                'RIGHT MOTOR – Pi GPIO is outputting correctly. If the right motor '
+                'moved during this test, the right side wiring is good.'
+            )
+
+        logger.info("DEBUG raw motor: side=%s direction=%s warnings=%d actions=%d",
+                    side, direction, len(warnings), len(actions))
+
+        # ------------------------------------------------------------------ #
+        # Step 4 – hold for 2 seconds so movement is clearly visible         #
+        # ------------------------------------------------------------------ #
+        time.sleep(2)
+        stop_all_motors()
+
+        # Restart PWM on enable pins
+        left_pwm.start(left_pwm_duty)
+        right_pwm.start(right_pwm_duty)
+
+        return jsonify({
+            'status':           'success',
+            'side_tested':      side,
+            'direction':        direction,
+            'direction_pins':   dir_pins,
+            'pwm_bypassed':     True,
+            'held_for_seconds': 2,
+            'diagnostics':      results,
+            'warnings':         warnings,
+            'actions':          actions,
+        })
+
+    except Exception as e:
+        # Best-effort PWM restore
+        try:
+            stop_all_motors()
+            left_pwm.start(left_pwm_duty)
+            right_pwm.start(right_pwm_duty)
+        except Exception:
+            pass
+        logger.error("Error in /debug/motor/raw: %s", str(e))
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 if __name__ == '__main__':
     logger.info("=" * 50)
