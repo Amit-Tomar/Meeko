@@ -67,6 +67,7 @@ def api_info():
             '/rotate/clockwise':    'Rotate clockwise at center',
             '/rotate/anticlockwise':'Rotate anticlockwise at center',
             '/stop':                'Stop all motors',
+            '/dance':               'Dance sequence (CW 2s → stop → ACW 2s → stop → forward 2s → stop → backward 2s → stop)',
             '/speed/set':           'Set speed (POST: {"speed": 0-100})',
             '/speed/get':           'Get current speed',
             '/speed/left':          'Set left motor speed (POST: {"speed": 0-100})',

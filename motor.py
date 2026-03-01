@@ -183,6 +183,56 @@ def stop():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
+@motor_bp.route('/dance', methods=['POST', 'GET'])
+def dance():
+    """Dance sequence: rotate CW 2s, stop, rotate ACW 2s, stop, forward 2s, stop, backward 2s, stop."""
+    try:
+        logger.info("Command: DANCE")
+
+        # Rotate clockwise for 2 seconds
+        stop_all_motors()
+        time.sleep(0.01)
+        GPIO.output(LEFT_FORWARD,   GPIO.HIGH)
+        GPIO.output(RIGHT_BACKWARD, GPIO.HIGH)
+        time.sleep(2)
+
+        # Stop
+        stop_all_motors()
+        time.sleep(0.5)
+
+        # Rotate anticlockwise for 2 seconds
+        GPIO.output(LEFT_BACKWARD,  GPIO.HIGH)
+        GPIO.output(RIGHT_FORWARD,  GPIO.HIGH)
+        time.sleep(2)
+
+        # Stop
+        stop_all_motors()
+        time.sleep(0.5)
+
+        # Move forward for 2 seconds
+        GPIO.output(LEFT_FORWARD,  GPIO.HIGH)
+        GPIO.output(RIGHT_FORWARD, GPIO.HIGH)
+        time.sleep(2)
+
+        # Stop
+        stop_all_motors()
+        time.sleep(0.5)
+
+        # Move backward for 2 seconds
+        GPIO.output(LEFT_BACKWARD,  GPIO.HIGH)
+        GPIO.output(RIGHT_BACKWARD, GPIO.HIGH)
+        time.sleep(2)
+
+        # Final stop
+        stop_all_motors()
+
+        return jsonify({'status': 'success', 'action': 'dance complete'})
+    except Exception as e:
+        logger.error("Error during dance: %s", str(e))
+        stop_all_motors()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @motor_bp.route('/speed/set', methods=['POST'])
 def set_speed():
     """Set speed for both motors (0-100)."""
