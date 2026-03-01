@@ -1,0 +1,51 @@
+# ---------------------------------------------------------------------------
+# Meeko Robot – Intent Script
+# ---------------------------------------------------------------------------
+# Add to configuration.yaml:
+#   intent_script: !include home_assistant/intent_script.yaml
+#
+# ---------------------------------------------------------------------------
+
+MeekoForward:
+  speech:
+    text: "Okay, Meeko moving forward."
+  action:
+    - service: rest_command.meeko_forward
+
+MeekoBackward:
+  speech:
+    text: "Okay, Meeko moving backward."
+  action:
+    - service: rest_command.meeko_backward
+
+MeekoRotateClockwise:
+  speech:
+    text: "Okay, Meeko rotating clockwise."
+  action:
+    - service: rest_command.meeko_rotate_clockwise
+
+MeekoRotateAnticlockwise:
+  speech:
+    text: "Okay, Meeko rotating anticlockwise."
+  action:
+    - service: rest_command.meeko_rotate_anticlockwise
+
+MeekoStop:
+  speech:
+    text: "Okay, Meeko stopping."
+  action:
+    - service: rest_command.meeko_stop
+
+MeekoDance:
+  speech:
+    text: "Okay, Meeko is dancing!"
+  action:
+    - service: rest_command.meeko_dance
+
+MeekoSetSpeed:
+  speech:
+    text: "Okay, setting Meeko speed to {{ speed }}."
+  action:
+    - service: rest_command.meeko_speed_set
+      data:
+        speed: "{{ speed }}"

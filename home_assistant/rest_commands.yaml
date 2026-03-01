@@ -1,0 +1,37 @@
+  # ---------------------------------------------------------------------------
+  # Meeko Robot – REST Commands
+  # ---------------------------------------------------------------------------
+  # Add to configuration.yaml:
+  #   rest_command: !include home_assistant/rest_commands.yaml
+  #
+  # ---------------------------------------------------------------------------
+
+  meeko_forward:
+    url: "http://192.168.1.200:5000/forward"
+    method: GET
+
+  meeko_backward:
+    url: "http://192.168.1.200:5000/backward"
+    method: GET
+
+  meeko_rotate_clockwise:
+    url: "http://192.168.1.200:5000/rotate/clockwise"
+    method: GET
+
+  meeko_rotate_anticlockwise:
+    url: "http://192.168.1.200:5000/rotate/anticlockwise"
+    method: GET
+
+  meeko_stop:
+    url: "http://192.168.1.200:5000/stop"
+    method: GET
+
+  meeko_dance:
+    url: "http://192.168.1.200:5000/dance"
+    method: GET
+
+  meeko_speed_set:
+    url: "http://192.168.1.200:5000/speed/set"
+    method: POST
+    content_type: "application/json"
+    payload: '{"speed": {{ speed }}'

@@ -1,0 +1,56 @@
+# ---------------------------------------------------------------------------
+# Meeko Robot – Custom Sentences for Home Assistant Assist
+# ---------------------------------------------------------------------------
+# Place this file at:
+#   <ha-config>/sentences/en/meeko.yaml
+#
+# This maps spoken phrases to intent names handled by intent_script.yaml.
+# ---------------------------------------------------------------------------
+
+language: "en"
+intents:
+
+  MeekoForward:
+    data:
+      - sentences:
+          - "(meeko|miku|miko|mikuu|robot) (move|go) forward"
+          - "(meeko|miku|miko|mikuu|robot) forward"
+
+  MeekoBackward:
+    data:
+      - sentences:
+          - "(meeko|miku|miko|mikuu|robot) (move|go) (backward|back)"
+          - "(meeko|miku|miko|mikuu|robot) (backward|reverse)"
+
+  MeekoRotateClockwise:
+    data:
+      - sentences:
+          - "(meeko|miku|miko|mikuu|robot) rotate clockwise"
+          - "(meeko|miku|miko|mikuu|robot) (turn|spin) right"
+
+  MeekoRotateAnticlockwise:
+    data:
+      - sentences:
+          - "(meeko|miku|miko|mikuu|robot) rotate (anticlockwise|counterclockwise)"
+          - "(meeko|miku|miko|mikuu|robot) (turn|spin) left"
+
+  MeekoStop:
+    data:
+      - sentences:
+          - "(meeko|miku|miko|mikuu|robot) stop"
+          - "stop (meeko|miku|miko|mikuu|robot)"
+          - "(meeko|miku|miko|mikuu|robot) halt"
+
+  MeekoDance:
+    data:
+      - sentences:
+          - "(meeko|miku|miko|mikuu|robot) dance"
+          - "(meeko|miku|miko|mikuu|robot) do a dance"
+          - "make (meeko|miku|miko|mikuu|robot) dance"
+
+  MeekoSetSpeed:
+    data:
+      - sentences:
+          - "(set|change) (meeko|miku|miko|mikuu|robot) speed to {speed}"
+          - "(meeko|miku|miko|mikuu|robot) speed {speed}"
+          - "(meeko|miku|miko|mikuu|robot) (set|change) speed to {speed}"
