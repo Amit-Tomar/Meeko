@@ -279,3 +279,7 @@ Before configuring everything, just test if the tunnel works:
 ## Voice assistant sattellite
 
 We use https://github.com/OHF-Voice/linux-voice-assistant for creating a satellite to interact with the Home Assistant pipeline.
+
+To run execute : 
+
+```./script/run --name gumpoo-satellite --debug```
